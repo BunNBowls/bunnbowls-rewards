@@ -29,6 +29,7 @@
   .rewards li{margin:8px 0}
   .rewards label{display:flex;align-items:center;gap:10px;border:2px solid var(--brown);border-radius:14px;padding:12px;background:#fff;cursor:pointer}
   .rewards input{width:20px;height:20px;accent-color:var(--brown)}
+  .small.err{color:var(--red);font-size:14px}
   .small{font-size:12px;color:var(--soft);text-align:center}
   .link{background:none;border:none;color:var(--soft);text-decoration:underline;font-size:12px;margin-top:6px}
   .hidden{display:none}
@@ -95,10 +96,10 @@ function ticksHtml(n){
 function askName(){
   app.innerHTML = `
     <h2>Join our rewards card</h2>
-    <p>Enter your full name. Scan every 24 hours to collect ${CONFIG.totalTicks} ticks and win a free item.</p>
+    <p>Enter your full name.</p>
     <input id="nm" type="text" placeholder="Full name" autocomplete="name" maxlength="60">
     <button id="go">Start my card</button>
-    <p class="small" id="err"></p>`;
+    <p class="small err" id="err"></p>`;
   $("go").onclick = () => {
     const name = $("nm").value.trim().replace(/\s+/g," ");
     if (name.split(" ").length < 2 || name.length < 3){ $("err").textContent = "Please enter your full name (first and last)."; return; }
