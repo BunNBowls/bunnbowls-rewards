@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FEF1D1">
+<title>Bun N Bowls - Rewards</title>
+<style>
+  :root{--cream:#FEF1D1;--yellow:#FCBA26;--brown:#3C1E0A;--soft:#6b4a2b;--green:#1a9a45;--red:#d92b2b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--brown);font-family:"Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:16px}
+  .wrap{width:100%;max-width:440px}
+  .card{background:#fff8e6;border:3px solid var(--brown);border-radius:22px;padding:20px;margin-bottom:16px}
+  h1{margin:0 0 4px;font-size:26px;text-align:center}
+  .tag{text-align:center;color:var(--soft);font-size:13px;margin-bottom:14px}
+  h2{margin:0 0 12px;font-size:18px}
+  p{margin:8px 0;line-height:1.4}
+  input[type=text],input[type=password]{width:100%;padding:14px;font:inherit;font-size:17px;border:2px solid var(--brown);border-radius:14px;background:#fff;margin:8px 0}
+  button,.btn{display:block;width:100%;text-align:center;text-decoration:none;font:inherit;font-size:17px;padding:14px;border:2px solid var(--brown);border-radius:999px;background:var(--yellow);color:var(--brown);cursor:pointer;margin-top:10px}
+  button:disabled{opacity:.5}
+  .btn.alt{background:#fff}
+  .ticks{display:flex;justify-content:space-between;gap:8px;margin:14px 0}
+  .tick{flex:1;aspect-ratio:1;border:3px dashed var(--brown);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(18px,7vw,30px);color:transparent;background:#fff}
+  .tick.on{background:var(--yellow);border-style:solid;color:var(--brown);animation:pop .4s}
+  @keyframes pop{0%{transform:scale(.4)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .msg{background:var(--yellow);border-radius:14px;padding:10px 14px;text-align:center}
+  .msg.info{background:#fff;border:2px solid var(--brown)}
+  .rewards{list-style:none;padding:0;margin:0}
+  .rewards li{margin:8px 0}
+  .rewards label{display:flex;align-items:center;gap:10px;border:2px solid var(--brown);border-radius:14px;padding:12px;background:#fff;cursor:pointer}
+  .rewards input{width:20px;height:20px;accent-color:var(--brown)}
+  .small{font-size:12px;color:var(--soft);text-align:center}
+  .link{background:none;border:none;color:var(--soft);text-decoration:underline;font-size:12px;margin-top:6px}
+  .hidden{display:none}
+  .ticket{border:3px dashed var(--brown);border-radius:16px;padding:16px;text-align:center;background:#fff}
+  .ticket b{font-size:22px;display:block;margin:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Bun N Bowls</h1>
+    <div class="tag">Crave It. Bun It. Bowl It.</div>
+    <div id="app"></div>
+  </div>
+
+  <div class="card" id="social">
+    <h2>Love it? Tell the world</h2>
+    <a class="btn" id="gReview" target="_blank" rel="noopener">&#11088; Leave us a Google review</a>
+    <a class="btn alt" id="igFollow" target="_blank" rel="noopener">Follow us on Instagram</a>
+  </div>
+  <p class="small">Call for party orders: 8850209040</p>
+</div>
+
+<script>
+/* ===== Settings you can change ===== */
+const CONFIG = {
+  totalTicks: 5,
+  hoursBetweenTicks: 24,
+  staffPin: "2580",   // CHANGE THIS. Staff enters it to confirm a reward is given.
+  googleUrl: "https://maps.app.goo.gl/RuNK5jpxJ1DfGwvs9",
+  instagramUrl: "https://www.instagram.com/bun_n_bowls",
+  rewards: [
+    "Crispy Chicken Mini Burgers",
+    "Crispy Chicken Bowl",
+    "Cold Coffee",
+    "Cold Coffee (KitKat)",
+    "Cold Coffee (Oreo)",
+    "Hot Chocolate"
+  ]
+};
+/* =================================== */
+
+const KEY = "bunnbowls_card_v1";
+const $ = id => document.getElementById(id);
+const app = $("app");
+$("gReview").href = CONFIG.googleUrl;
+$("igFollow").href = CONFIG.instagramUrl;
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } };
+const save = c => localStorage.setItem(KEY, JSON.stringify(c));
+const waitMs = c => CONFIG.hoursBetweenTicks*3600e3 - (Date.now() - c.lastTick);
+
+function fmtWait(ms){
+  const m = Math.ceil(ms/60000), h = Math.floor(m/60);
+  return h ? `${h}h ${m%60}m` : `${m}m`;
+}
+function ticksHtml(n){
+  let s = '<div class="ticks">';
+  for (let i=0;i<CONFIG.totalTicks;i++) s += `<div class="tick ${i<n?'on':''}">&#10003;</div>`;
+  return s + '</div>';
+}
+
+function askName(){
+  app.innerHTML = `
+    <h2>Join our rewards card</h2>
+    <p>Enter your full name. Scan every 24 hours to collect ${CONFIG.totalTicks} ticks and win a free item.</p>
+    <input id="nm" type="text" placeholder="Full name" autocomplete="name" maxlength="60">
+    <button id="go">Start my card</button>
+    <p class="small" id="err"></p>`;
+  $("go").onclick = () => {
+    const name = $("nm").value.trim().replace(/\s+/g," ");
+    if (name.split(" ").length < 2 || name.length < 3){ $("err").textContent = "Please enter your full name (first and last)."; return; }
+    const c = {name, ticks:1, lastTick:Date.now(), created:Date.now(), redeemed:0};
+    save(c); render(c, "Welcome! Your first tick is added.");
+  };
+}
+
+function render(c, note){
+  if (c.ticks >= CONFIG.totalTicks) return renderReward(c);
+  const w = waitMs(c);
+  let msg = note ? `<div class="msg">${esc(note)}</div>` :
+            w > 0 ? `<div class="msg info">Next tick available in ${fmtWait(w)}</div>` : "";
+  app.innerHTML = `
+    <h2>Hi ${esc(c.name)}!</h2>
+    ${ticksHtml(c.ticks)}
+    <p style="text-align:center"><b>${c.ticks} of ${CONFIG.totalTicks}</b> ticks${c.redeemed?` &middot; Rewards won: ${c.redeemed}`:""}</p>
+    ${msg}
+    <p class="small">Scan our QR again after ${CONFIG.hoursBetweenTicks} hours to get your next tick.</p>`;
+}
+
+function renderReward(c, note){
+  app.innerHTML = `
+    <h2>Congratulations ${esc(c.name)}!</h2>
+    ${ticksHtml(CONFIG.totalTicks)}
+    ${note?`<div class="msg">${esc(note)}</div>`:""}
+    <p>You completed all ${CONFIG.totalTicks} ticks. Pick your free reward:</p>
+    <ul class="rewards">
+      ${CONFIG.rewards.map((r,i)=>`<li><label><input type="radio" name="rw" value="${i}"> ${esc(r)}</label></li>`).join("")}
+    </ul>
+    <button id="pick" disabled>Claim reward</button>`;
+  const btn = $("pick");
+  document.querySelectorAll('input[name=rw]').forEach(r => r.onchange = () => btn.disabled = false);
+  btn.onclick = () => {
+    const sel = document.querySelector('input[name=rw]:checked'); if(!sel) return;
+    renderRedeem(c, CONFIG.rewards[+sel.value]);
+  };
+}
+
+function renderRedeem(c, reward){
+  app.innerHTML = `
+    <h2>Show this to our staff</h2>
+    <div class="ticket">${esc(c.name)}<b>${esc(reward)}</b>Free reward</div>
+    <p class="small">Staff only: enter PIN to confirm. This resets the card.</p>
+    <input id="pin" type="password" inputmode="numeric" placeholder="Staff PIN" autocomplete="off">
+    <button id="ok">Confirm &amp; redeem</button>
+    <button class="btn alt" id="back">Back</button>
+    <p class="small" id="err"></p>`;
+  $("back").onclick = () => renderReward(c);
+  $("ok").onclick = () => {
+    if ($("pin").value !== CONFIG.staffPin){ $("err").textContent = "Wrong PIN."; return; }
+    const n = {name:c.name, ticks:0, lastTick:Date.now()-CONFIG.hoursBetweenTicks*3600e3, created:c.created, redeemed:(c.redeemed||0)+1};
+    n.ticks = 0; save(n);
+    app.innerHTML = `<h2>Enjoy your ${esc(reward)}!</h2><div class="msg">Reward redeemed. Scan again to start a new card.</div>`;
+  };
+}
+
+/* On every page open (= every QR scan) */
+(function init(){
+  const c = load();
+  if (!c || !c.name) return askName();
+  if (c.ticks >= CONFIG.totalTicks) return renderReward(c);
+  if (c.ticks === 0 || waitMs(c) <= 0){
+    c.ticks += 1; c.lastTick = Date.now(); save(c);
+    return render(c, c.ticks >= CONFIG.totalTicks ? "" : `Tick ${c.ticks} added!`);
+  }
+  render(c);
+})();
+</script>
+</body>
+</html>
